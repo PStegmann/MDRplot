@@ -14,6 +14,12 @@
 #	- Radial potential plot (2015-11-02,PST)
 #	- Radial wave function evaluation & plot (2015-11-11,PST)
 #
+#	Programmer's Comments:
+#	----------------------
+#	
+#	1. The Bessel functions from Scipy always return a
+#		tuple with shape [1][n]. Undocumented "feature".
+# 
 
 # import modules
 import numpy as np 			# NumPy
@@ -27,9 +33,9 @@ from pylab import * 			# Matplotlib's pylab
 global m,n,k,a
 m = 1.47 						# refractive index
 n = 40 							# order
-k = 33.0 						# wave number
+k = 33. 						# wave number
 a = 1.0 						# particle radius
-r = np.linspace(0.5,1.5,2000) 	# radial coordinate
+r = np.linspace(0.5,2.0,3000) 	# radial coordinate
 
 # calculate potential
 def potential(radi):
@@ -49,6 +55,9 @@ V = vecV(r)
 	#V[ii] = potential(r[ii])
 
 plt.plot(r,V,'k-',linewidth=2)
+axes = plt.gca()
+axes.set_xlim([0.5,2.0])
+axes.set_ylim([0.,2000.])
 plt.text(a, 1800, 'scattering particle radius')
 plt.text(0.41, k*k, '$k^2$',fontsize=15)
 plt.xlabel('radial coordinate $r$',fontsize=20)
@@ -57,15 +66,52 @@ plt.grid('on'), plt.box('on')
 
 # radial wave function TE (eq. 12)
 radwavefunc = np.zeros(r.shape,dtype=float)
-beta_n = (m*k*a*sp.special.riccati_jn(n,m*k*a)[1][n] - k*a*sp.special.riccati_yn(n,k*a)[1][n]) \
-		/(k*a*sp.special.riccati_jn(n,(k*a))[1][n])
+
+# First derivative of the Riccati-Bessel function
+# of the first kind based on the spherical Bessel
+# function.
+def Psiprime(n,x):
+	def jp(n,x):
+		jderiv = sp.special.sph_jn(n,x)[1][n-1] \
+				-(n+1)/x*sp.special.sph_jn(n,x)[1][n]
+		return jderiv
+	pp = sp.special.sph_jn(n,x)[1][n]+x*jp(n,x)
+	return pp
+
+# First derivative of the Riccati-Bessel function
+# of the second kind based on the corresponding
+# spherical Bessel function.
+def Xiprime(n,x):
+	def yp(n,x):
+		yderiv = sp.special.sph_yn(n,x)[1][n-1] \
+				-(n+1)/x*sp.special.sph_yn(n,x)[1][n]
+		return yderiv
+
+	pp = sp.special.sph_yn(n,x)[1][n]+x*yp(n,x)
+	return -1.0*pp
+
+# Bn from continuity of the first derivative
+Bn = (m*Psiprime(n,m*k*a)\
+	-sp.special.riccati_jn(n,(m*k*a))[1][n]/sp.special.riccati_jn(n,(m*k*a))[1][n]*Psiprime(n,k*a))\
+	/(Xiprime(n,k*a)\
+	-sp.special.riccati_yn(n,k*a)[1][n]/sp.special.riccati_jn(n,k*a)[1][n]*Psiprime(n,k*a))
+
+print 'Bn = ', Bn
+
+# beta_n from continuity of the radial wave function at the interface
+beta_n = (sp.special.riccati_yn(n,m*k*a)[1][n]/Bn - sp.special.riccati_jn(n,k*a)[1][n]) \
+		/(sp.special.riccati_yn(n,(k*a))[1][n])
+
+print 'beta_n = ', beta_n
+
 for ii in range(1,r.size):
 	if r[ii] > a:
-		radwavefunc[ii] = (k*r[ii])*sp.special.riccati_yn(n,(k*r[ii]))[1][n] \
-						+ beta_n*(k*r[ii])*sp.special.riccati_jn(n,(k*r[ii]))[1][n]
+		radwavefunc[ii] = Bn*(sp.special.riccati_jn(n,(k*r[ii]))[1][n] \
+						+ beta_n*sp.special.riccati_yn(n,(k*r[ii]))[1][n])
 	elif r[ii] <= a:
-		radwavefunc[ii] = (m*k*r[ii])*sp.special.riccati_jn(n,(m*k*r[ii]))[1][n]
+		radwavefunc[ii] = sp.special.riccati_jn(n,(m*k*r[ii]))[1][n]
 
-plt.plot(r,radwavefunc,'r-',linewidth=2)
+scalingfactor = 1000.
+plt.plot(r,scalingfactor*radwavefunc+scalingfactor,'r-',linewidth=2)
 
 plt.show()
