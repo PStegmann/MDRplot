@@ -16,11 +16,11 @@
 #
 
 # import modules
-import numpy as np 				# NumPy
+import numpy as np 			# NumPy
 import scipy as sp         		# Scipy
 from scipy import special
 import matplotlib as mpl 		# Matplotlib (2D/3D)
-import matplotlib.pyplot as plt # Matplotlib's pyplot
+import matplotlib.pyplot as plt 	# Matplotlib's pyplot
 from pylab import * 			# Matplotlib's pylab
 
 # define constants
@@ -47,7 +47,8 @@ vecV = np.vectorize(potential)
 V = vecV(r)
 #for ii in range(1,r.size):
 	#V[ii] = potential(r[ii])
-#plt.plot(r,V,'k-',linewidth=2)
+
+plt.plot(r,V,'k-',linewidth=2)
 plt.text(a, 1800, 'scattering particle radius')
 plt.text(0.41, k*k, '$k^2$',fontsize=15)
 plt.xlabel('radial coordinate $r$',fontsize=20)
@@ -66,4 +67,5 @@ for ii in range(1,r.size):
 		radwavefunc[ii] = (m*k*r[ii])*sp.special.riccati_jn(n,(m*k*r[ii]))[1][n]
 
 plt.plot(r,radwavefunc,'r-',linewidth=2)
+
 plt.show()
